@@ -3,10 +3,35 @@ import CrashHistory from "@/components/CrashHistory";
 import MultiplierDisplay from "@/components/MultiplierDisplay";
 import BetControls from "@/components/BetControls";
 import LiveBets from "@/components/LiveBets";
+import LiveChat from "@/components/LiveChat";
 import { useCrashGame } from "@/hooks/useCrashGame";
+import { useGameSounds } from "@/hooks/useGameSounds";
+import { useEffect, useRef } from "react";
 
 const Index = () => {
   const { gameState, multiplier, crashPoint, currentBet, placeBet, cashout } = useCrashGame();
+  const { playRoundStart, playCashout, playCrash } = useGameSounds();
+  const prevStateRef = useRef(gameState);
+  const prevCashedOutRef = useRef(false);
+
+  // Sound effects on state transitions
+  useEffect(() => {
+    const prev = prevStateRef.current;
+    if (prev !== gameState) {
+      if (gameState === "running") playRoundStart();
+      if (gameState === "crashed") playCrash();
+      prevStateRef.current = gameState;
+    }
+  }, [gameState, playRoundStart, playCrash]);
+
+  // Cashout sound
+  useEffect(() => {
+    const cashedOut = currentBet?.cashedOut ?? false;
+    if (cashedOut && !prevCashedOutRef.current) {
+      playCashout();
+    }
+    prevCashedOutRef.current = cashedOut;
+  }, [currentBet?.cashedOut, playCashout]);
 
   return (
     <div className="min-h-screen flex flex-col bg-background">
@@ -14,9 +39,10 @@ const Index = () => {
       <CrashHistory />
 
       <div className="flex-1 p-4 grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[320px_1fr_320px] gap-4 max-w-[1600px] mx-auto w-full">
-        {/* Live bets - LEFT side, hidden on smaller screens */}
-        <div className="hidden lg:block">
+        {/* Live bets + Chat - LEFT side */}
+        <div className="hidden lg:flex lg:flex-col gap-4">
           <LiveBets />
+          <LiveChat />
         </div>
 
         {/* Multiplier display */}
@@ -50,9 +76,10 @@ const Index = () => {
             </div>
           )}
 
-          {/* Live bets on smaller screens */}
-          <div className="lg:hidden">
+          {/* Live bets + chat on smaller screens */}
+          <div className="lg:hidden space-y-4">
             <LiveBets />
+            <LiveChat />
           </div>
         </div>
       </div>
