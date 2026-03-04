@@ -1,6 +1,9 @@
-import { Rocket, Shield, Smartphone } from "lucide-react";
+import { Rocket, Shield, Smartphone, Volume2, VolumeX } from "lucide-react";
+import { useSound } from "@/contexts/SoundContext";
 
 const GameHeader = () => {
+  const { muted, toggleMute } = useSound();
+
   return (
     <header className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-border bg-card/80 backdrop-blur-sm">
       {/* Logo */}
@@ -26,8 +29,19 @@ const GameHeader = () => {
         </div>
       </div>
 
-      {/* Balance */}
+      {/* Sound + Balance */}
       <div className="flex items-center gap-3">
+        <button
+          onClick={toggleMute}
+          className="w-8 h-8 rounded-full bg-secondary border border-border flex items-center justify-center hover:bg-secondary/80 transition-colors"
+          aria-label={muted ? "Unmute" : "Mute"}
+        >
+          {muted ? (
+            <VolumeX className="w-4 h-4 text-muted-foreground" />
+          ) : (
+            <Volume2 className="w-4 h-4 text-foreground" />
+          )}
+        </button>
         <div className="flex flex-col items-end">
           <span className="text-[10px] text-muted-foreground">Balance</span>
           <span className="text-sm font-mono font-bold text-foreground">KES 25,000</span>

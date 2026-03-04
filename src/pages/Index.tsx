@@ -38,15 +38,15 @@ const Index = () => {
       <GameHeader />
       <CrashHistory />
 
-      <div className="flex-1 p-4 grid grid-cols-1 lg:grid-cols-[320px_1fr] xl:grid-cols-[320px_1fr_320px] gap-4 max-w-[1600px] mx-auto w-full">
-        {/* Live bets + Chat - LEFT side */}
-        <div className="hidden lg:flex lg:flex-col gap-4">
+      <div className="flex-1 p-3 md:p-4 grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[320px_1fr_320px] gap-3 md:gap-4 max-w-[1600px] mx-auto w-full">
+        {/* Live bets + Chat - LEFT side (hidden on mobile) */}
+        <div className="hidden lg:flex lg:flex-col gap-3 md:gap-4 overflow-hidden">
           <LiveBets />
           <LiveChat />
         </div>
 
         {/* Multiplier display */}
-        <div className="flex flex-col min-h-[400px] lg:min-h-0">
+        <div className="flex flex-col min-h-[300px] sm:min-h-[350px] lg:min-h-0">
           <MultiplierDisplay
             gameState={gameState}
             multiplier={multiplier}
@@ -55,7 +55,7 @@ const Index = () => {
         </div>
 
         {/* Bet controls - RIGHT side */}
-        <div className="space-y-4">
+        <div className="space-y-3 md:space-y-4">
           <BetControls
             gameState={gameState}
             onPlaceBet={placeBet}
@@ -75,12 +75,12 @@ const Index = () => {
               </p>
             </div>
           )}
+        </div>
 
-          {/* Live bets + chat on smaller screens */}
-          <div className="lg:hidden space-y-4">
-            <LiveBets />
-            <LiveChat />
-          </div>
+        {/* Mobile: stacked bets + chat below controls */}
+        <div className="lg:hidden space-y-3 col-span-1">
+          <LiveBets />
+          <LiveChat />
         </div>
       </div>
 

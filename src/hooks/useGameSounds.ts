@@ -1,9 +1,11 @@
 import { useCallback, useRef } from "react";
+import { useSound } from "@/contexts/SoundContext";
 
 const AudioContext = window.AudioContext || (window as any).webkitAudioContext;
 
 export function useGameSounds() {
   const ctxRef = useRef<AudioContext | null>(null);
+  const { muted } = useSound();
 
   const getCtx = useCallback(() => {
     if (!ctxRef.current) {
@@ -14,6 +16,7 @@ export function useGameSounds() {
 
   const playTone = useCallback(
     (freq: number, duration: number, type: OscillatorType = "sine", volume = 0.15) => {
+      if (muted) return;
       try {
         const ctx = getCtx();
         const osc = ctx.createOscillator();
@@ -30,7 +33,7 @@ export function useGameSounds() {
         // Audio not supported
       }
     },
-    [getCtx]
+    [getCtx, muted]
   );
 
   const playRoundStart = useCallback(() => {
