@@ -1,5 +1,8 @@
 import { useState } from "react";
 import { Button } from "@/components/ui/button";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
+import { LogIn } from "lucide-react";
 
 type GameState = "waiting" | "running" | "crashed";
 
@@ -16,11 +19,41 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
   const [betAmount, setBetAmount] = useState(100);
   const [autoCashout, setAutoCashout] = useState<string>("2.00");
   const [autoCashoutEnabled, setAutoCashoutEnabled] = useState(false);
+  const { user, balance } = useAuth();
+  const navigate = useNavigate();
 
   const handleBet = () => {
+    if (!user) {
+      navigate("/auth");
+      return;
+    }
     const cashout = autoCashoutEnabled ? parseFloat(autoCashout) : null;
     onPlaceBet(betAmount, cashout);
   };
+
+  // Watch-only mode for non-authenticated users
+  if (!user) {
+    return (
+      <div className="bg-card border border-border rounded-xl p-6 flex flex-col items-center gap-4 text-center">
+        <div className="w-12 h-12 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
+          <LogIn className="w-6 h-6 text-primary" />
+        </div>
+        <div>
+          <h3 className="text-sm font-semibold text-foreground mb-1">Watch Mode</h3>
+          <p className="text-xs text-muted-foreground leading-relaxed">
+            You're watching the game as a demo. Sign in to place bets and win real KES!
+          </p>
+        </div>
+        <Button
+          onClick={() => navigate("/auth")}
+          className="w-full py-3 text-sm font-bold uppercase tracking-wider"
+        >
+          Sign In to Play
+        </Button>
+        <p className="text-[10px] text-muted-foreground">New players get KES 1,000 starter balance</p>
+      </div>
+    );
+  }
 
   return (
     <div className="bg-card border border-border rounded-xl p-4 space-y-4">
@@ -106,24 +139,24 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
       {gameState === "running" && hasBet ? (
         <button
           onClick={onCashout}
-          className="w-full py-4 rounded-xl font-bold text-lg uppercase tracking-wider bg-gaming-green text-white glow-green transition-all hover:brightness-110 active:scale-[0.98]"
+          className="w-full py-4 rounded-xl font-bold text-lg uppercase tracking-wider bg-gaming-green text-primary-foreground glow-green transition-all hover:brightness-110 active:scale-[0.98]"
         >
           Cash Out
         </button>
       ) : (
         <button
           onClick={handleBet}
-          disabled={gameState === "running"}
+          disabled={gameState === "running" || betAmount > balance}
           className="w-full py-4 rounded-xl font-bold text-lg uppercase tracking-wider bg-primary text-primary-foreground glow-primary transition-all hover:brightness-110 active:scale-[0.98] disabled:opacity-40 disabled:cursor-not-allowed"
         >
-          {gameState === "running" ? "Round in Progress" : "Place Bet"}
+          {gameState === "running" ? "Round in Progress" : betAmount > balance ? "Insufficient Balance" : "Place Bet"}
         </button>
       )}
 
       {/* Balance display */}
       <div className="flex items-center justify-between pt-2 border-t border-border">
         <span className="text-xs text-muted-foreground">Balance</span>
-        <span className="font-mono text-sm font-semibold text-foreground">KES 25,000.00</span>
+        <span className="font-mono text-sm font-semibold text-foreground">KES {balance.toLocaleString()}</span>
       </div>
     </div>
   );

@@ -1,8 +1,12 @@
-import { Rocket, Shield, Smartphone, Volume2, VolumeX } from "lucide-react";
+import { Rocket, Shield, Smartphone, Volume2, VolumeX, LogIn, LogOut } from "lucide-react";
 import { useSound } from "@/contexts/SoundContext";
+import { useAuth } from "@/contexts/AuthContext";
+import { useNavigate } from "react-router-dom";
 
 const GameHeader = () => {
   const { muted, toggleMute } = useSound();
+  const { user, balance, signOut } = useAuth();
+  const navigate = useNavigate();
 
   return (
     <header className="flex items-center justify-between px-4 md:px-6 py-3 border-b border-border bg-card/80 backdrop-blur-sm">
@@ -29,7 +33,7 @@ const GameHeader = () => {
         </div>
       </div>
 
-      {/* Sound + Balance */}
+      {/* Sound + Auth + Balance */}
       <div className="flex items-center gap-3">
         <button
           onClick={toggleMute}
@@ -42,13 +46,32 @@ const GameHeader = () => {
             <Volume2 className="w-4 h-4 text-foreground" />
           )}
         </button>
-        <div className="flex flex-col items-end">
-          <span className="text-[10px] text-muted-foreground">Balance</span>
-          <span className="text-sm font-mono font-bold text-foreground">KES 25,000</span>
-        </div>
-        <div className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center">
-          <span className="text-xs font-bold text-primary">U</span>
-        </div>
+
+        {user ? (
+          <>
+            <div className="flex flex-col items-end">
+              <span className="text-[10px] text-muted-foreground">Balance</span>
+              <span className="text-sm font-mono font-bold text-foreground">
+                KES {balance.toLocaleString()}
+              </span>
+            </div>
+            <button
+              onClick={signOut}
+              className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center hover:bg-primary/30 transition-colors"
+              title="Sign out"
+            >
+              <LogOut className="w-3.5 h-3.5 text-primary" />
+            </button>
+          </>
+        ) : (
+          <button
+            onClick={() => navigate("/auth")}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:brightness-110 transition-all"
+          >
+            <LogIn className="w-3.5 h-3.5" />
+            Sign In
+          </button>
+        )}
       </div>
     </header>
   );
