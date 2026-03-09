@@ -55,7 +55,7 @@ const Index = () => {
           />
         </div>
 
-        {/* Bet controls - RIGHT side */}
+        {/* Bet controls + Chat - RIGHT side */}
         <div className="space-y-3 md:space-y-4">
           <BetControls
             gameState={gameState}
@@ -76,6 +76,8 @@ const Index = () => {
               </p>
             </div>
           )}
+
+          <LiveChat />
         </div>
 
         {/* Mobile: stacked bets + chat below controls */}
