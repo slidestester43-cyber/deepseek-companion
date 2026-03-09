@@ -1,4 +1,4 @@
-import { Rocket, Shield, Smartphone, Volume2, VolumeX, LogIn, LogOut } from "lucide-react";
+import { Rocket, Shield, Volume2, VolumeX, LogIn, LogOut } from "lucide-react";
 import { useSound } from "@/contexts/SoundContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -26,10 +26,6 @@ const GameHeader = () => {
         <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border">
           <Shield className="w-3.5 h-3.5 text-gaming-green" />
           <span className="text-xs text-secondary-foreground font-medium">SHA-256 Verified</span>
-        </div>
-        <div className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-secondary border border-border">
-          <Smartphone className="w-3.5 h-3.5 text-gaming-blue" />
-          <span className="text-xs text-secondary-foreground font-medium">M-Pesa Ready</span>
         </div>
       </div>
 
