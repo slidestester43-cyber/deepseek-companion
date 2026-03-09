@@ -31,6 +31,7 @@ export function useCrashGame() {
     setCrashPoint(cp);
     setMultiplier(1.0);
     setGameState("running");
+    setRoundCount((c) => c + 1);
     startTimeRef.current = Date.now();
 
     intervalRef.current = setInterval(() => {
