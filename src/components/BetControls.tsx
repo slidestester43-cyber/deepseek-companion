@@ -59,7 +59,7 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
       {/* Mode indicator */}
       <div className="flex items-center justify-between">
         <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Place Bet</h3>
-        {isDemo ? (
+        {!user ? (
           <span className="text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
             Demo Mode
           </span>
@@ -69,23 +69,6 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
           </span>
         )}
       </div>
-
-      {/* Logged in but no real balance - prompt to deposit */}
-      {user && isDemo && (
-        <div className="bg-primary/5 border border-primary/20 rounded-lg p-3 text-center space-y-2">
-          <p className="text-[11px] text-muted-foreground">
-            You're playing with <strong className="text-foreground">demo money</strong>. Deposit to play with real KES.
-          </p>
-          <Button
-            size="sm"
-            variant="outline"
-            className="text-xs gap-1.5"
-            onClick={() => navigate("/profile")}
-          >
-            <Wallet className="w-3 h-3" /> Deposit Real Money
-          </Button>
-        </div>
-      )}
 
       {/* Bet amount input */}
       <div className="space-y-2">
