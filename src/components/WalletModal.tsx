@@ -87,15 +87,6 @@ const WalletModal = ({ open, onClose }: WalletModalProps) => {
             )}
           </div>
           {/* Demo balance */}
-          <div className="text-center pt-2 border-t border-border">
-            <div className="flex items-center justify-center gap-1.5 mb-0.5">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Demo Balance</p>
-              <span className="text-[8px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-accent text-accent-foreground leading-none">
-                Not Withdrawable
-              </span>
-            </div>
-            <p className="text-sm font-mono font-semibold text-muted-foreground">KES {demoBalance.toLocaleString()}</p>
-          </div>
         </div>
 
         {/* Tabs */}
