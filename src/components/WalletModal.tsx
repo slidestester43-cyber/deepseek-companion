@@ -61,7 +61,7 @@ const WalletModal = ({ open, onClose }: WalletModalProps) => {
     }, 1500);
   };
 
-  const canWithdraw = !isDemo && balance > 0;
+  const canWithdraw = balance > 0;
 
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center px-4">
