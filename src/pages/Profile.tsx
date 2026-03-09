@@ -77,13 +77,17 @@ const Profile = () => {
   };
 
   const handleWithdraw = async () => {
+    if (isDemo || balance <= 0) {
+      toast.error("Withdrawals are only available for deposited/earned funds, not demo money.");
+      return;
+    }
     const amount = Number(withdrawAmount);
     if (amount < 100) {
       toast.error("Minimum withdrawal is KES 100");
       return;
     }
     if (amount > balance) {
-      toast.error("Insufficient balance");
+      toast.error("Amount exceeds your real balance");
       return;
     }
     setProcessing(true);
