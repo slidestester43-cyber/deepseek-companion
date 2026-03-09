@@ -1,4 +1,4 @@
-import { Rocket, Shield, Volume2, VolumeX, LogIn, LogOut } from "lucide-react";
+import { Rocket, Shield, Volume2, VolumeX, LogIn, LogOut, User } from "lucide-react";
 import { useSound } from "@/contexts/SoundContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
