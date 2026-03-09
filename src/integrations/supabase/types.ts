@@ -14,7 +14,120 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      balances: {
+        Row: {
+          amount: number
+          created_at: string
+          id: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          amount?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          amount?: number
+          created_at?: string
+          id?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      bet_history: {
+        Row: {
+          bet_amount: number
+          cashout_multiplier: number | null
+          crashed: boolean
+          created_at: string
+          id: string
+          profit: number
+          user_id: string
+        }
+        Insert: {
+          bet_amount: number
+          cashout_multiplier?: number | null
+          crashed?: boolean
+          created_at?: string
+          id?: string
+          profit?: number
+          user_id: string
+        }
+        Update: {
+          bet_amount?: number
+          cashout_multiplier?: number | null
+          crashed?: boolean
+          created_at?: string
+          id?: string
+          profit?: number
+          user_id?: string
+        }
+        Relationships: []
+      }
+      leaderboard_entries: {
+        Row: {
+          best_multiplier: number
+          created_at: string
+          date: string
+          id: string
+          total_winnings: number
+          user_id: string
+          username: string
+        }
+        Insert: {
+          best_multiplier: number
+          created_at?: string
+          date?: string
+          id?: string
+          total_winnings?: number
+          user_id: string
+          username: string
+        }
+        Update: {
+          best_multiplier?: number
+          created_at?: string
+          date?: string
+          id?: string
+          total_winnings?: number
+          user_id?: string
+          username?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          display_name: string | null
+          id: string
+          phone_number: string | null
+          updated_at: string
+          user_id: string
+          username: string | null
+        }
+        Insert: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          phone_number?: string | null
+          updated_at?: string
+          user_id: string
+          username?: string | null
+        }
+        Update: {
+          created_at?: string
+          display_name?: string | null
+          id?: string
+          phone_number?: string | null
+          updated_at?: string
+          user_id?: string
+          username?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
