@@ -21,6 +21,7 @@ const Profile = () => {
   const [bets, setBets] = useState<BetRecord[]>([]);
   const [loadingBets, setLoadingBets] = useState(true);
   const [depositAmount, setDepositAmount] = useState("");
+  const [phoneNumber, setPhoneNumber] = useState("");
   const [withdrawAmount, setWithdrawAmount] = useState("");
   const [showDeposit, setShowDeposit] = useState(false);
   const [showWithdraw, setShowWithdraw] = useState(false);
