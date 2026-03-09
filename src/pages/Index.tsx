@@ -9,7 +9,7 @@ import { useGameSounds } from "@/hooks/useGameSounds";
 import { useEffect, useRef } from "react";
 
 const Index = () => {
-  const { gameState, multiplier, crashPoint, currentBet, roundCount, crashHistory, crashHistory, placeBet, cashout } = useCrashGame();
+  const { gameState, multiplier, crashPoint, currentBet, roundCount, crashHistory, placeBet, cashout } = useCrashGame();
   const { playRoundStart, playCashout, playCrash } = useGameSounds();
   const prevStateRef = useRef(gameState);
   const prevCashedOutRef = useRef(false);
