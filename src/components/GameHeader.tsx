@@ -55,7 +55,14 @@ const GameHeader = () => {
               >
                 <Wallet className="w-3.5 h-3.5 text-primary" />
                 <div className="flex flex-col items-start">
-                  <span className="text-[10px] text-muted-foreground leading-none">Balance</span>
+                  <div className="flex items-center gap-1">
+                    <span className="text-[10px] text-muted-foreground leading-none">Balance</span>
+                    {balance > 0 && (
+                      <span className="text-[8px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-accent text-accent-foreground leading-none">
+                        Demo
+                      </span>
+                    )}
+                  </div>
                   <span className="text-xs font-mono font-bold text-foreground">
                     KES {balance.toLocaleString()}
                   </span>
