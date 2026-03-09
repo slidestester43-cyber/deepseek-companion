@@ -53,5 +53,24 @@ export function useGameSounds() {
     setTimeout(() => playTone(110, 0.5, "sawtooth", 0.08), 150);
   }, [playTone]);
 
-  return { playRoundStart, playCashout, playCrash };
+  const playHistoryPop = useCallback(
+    (value: number) => {
+      if (value >= 10) {
+        // Big win - triumphant chime
+        playTone(660, 0.12, "sine", 0.1);
+        setTimeout(() => playTone(880, 0.12, "sine", 0.1), 60);
+        setTimeout(() => playTone(1100, 0.2, "sine", 0.12), 120);
+      } else if (value >= 2) {
+        // Medium - pleasant pop
+        playTone(700, 0.12, "sine", 0.08);
+        setTimeout(() => playTone(900, 0.15, "sine", 0.1), 70);
+      } else {
+        // Low crash - dull thud
+        playTone(180, 0.15, "triangle", 0.06);
+      }
+    },
+    [playTone]
+  );
+
+  return { playRoundStart, playCashout, playCrash, playHistoryPop };
 }

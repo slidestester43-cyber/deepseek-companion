@@ -139,4 +139,26 @@
   .animate-count {
     animation: countUp 0.1s ease-out;
   }
+
+  @keyframes historyPop {
+    0% { transform: scale(0) translateX(-10px); opacity: 0; }
+    50% { transform: scale(1.2) translateX(0); opacity: 1; }
+    100% { transform: scale(1) translateX(0); opacity: 1; }
+  }
+
+  .animate-history-pop {
+    animation: historyPop 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .border-gaming-green\/30 {
+    border-color: hsl(var(--gaming-green) / 0.3);
+  }
+
+  .border-gaming-red\/30 {
+    border-color: hsl(var(--gaming-red) / 0.3);
+  }
+
+  .border-gaming-gold\/30 {
+    border-color: hsl(var(--gaming-gold) / 0.3);
+  }
 }
