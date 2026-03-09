@@ -10,8 +10,24 @@ const GameHeader = () => {
   const { user, balance, demoBalance, isDemo, signOut } = useAuth();
   const navigate = useNavigate();
   const [walletOpen, setWalletOpen] = useState(false);
+  const [isAdminUser, setIsAdminUser] = useState(false);
 
   const displayBalance = isDemo ? demoBalance : balance;
+
+  // Check admin role
+  useEffect(() => {
+    if (!user) { setIsAdminUser(false); return; }
+    const check = async () => {
+      const { data } = await (supabase as any)
+        .from("user_roles")
+        .select("role")
+        .eq("user_id", user.id)
+        .eq("role", "admin")
+        .single();
+      setIsAdminUser(!!data);
+    };
+    check();
+  }, [user]);
 
   return (
     <>
