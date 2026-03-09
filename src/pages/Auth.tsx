@@ -7,6 +7,12 @@ import { toast } from "sonner";
 
 type AuthMode = "login" | "signup";
 
+// Convert phone to email format for auth (workaround for phone provider being disabled)
+const phoneToEmail = (phone: string) => {
+  const cleaned = phone.replace(/[^0-9+]/g, "");
+  return `${cleaned}@mozzatbet.app`;
+};
+
 const Auth = () => {
   const [mode, setMode] = useState<AuthMode>("login");
   const [phone, setPhone] = useState("");
@@ -18,20 +24,29 @@ const Auth = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!phone || phone.length < 10) {
+      toast.error("Enter a valid phone number");
+      return;
+    }
     setLoading(true);
+    const email = phoneToEmail(phone);
     try {
       if (mode === "signup") {
         const { error } = await supabase.auth.signUp({
-          phone,
+          email,
           password,
           options: {
-            data: { username, display_name: username },
+            data: { username, display_name: username, phone_number: phone },
           },
         });
         if (error) throw error;
-        toast.success("Account created! You can now sign in.");
+        toast.success("Account created! Signing you in...");
+        // Auto sign in after signup
+        const { error: signInError } = await supabase.auth.signInWithPassword({ email, password });
+        if (signInError) throw signInError;
+        navigate("/");
       } else {
-        const { error } = await supabase.auth.signInWithPassword({ phone, password });
+        const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         navigate("/");
       }
