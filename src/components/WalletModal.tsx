@@ -35,8 +35,8 @@ const WalletModal = ({ open, onClose }: WalletModalProps) => {
       return;
     }
     if (tab === "withdraw") {
-      if (isDemo || balance <= 0) {
-        toast.error("You can only withdraw deposited or earned funds, not demo money.");
+      if (balance <= 0) {
+        toast.error("Your balance is KES 0. Deposit funds first.");
         return;
       }
       if (numAmount > balance) {
