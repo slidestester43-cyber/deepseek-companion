@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { X, ArrowDownToLine, ArrowUpFromLine, Phone, Loader2, CheckCircle } from "lucide-react";
+import { X, ArrowDownToLine, ArrowUpFromLine, Phone, Loader2, CheckCircle, AlertTriangle } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -33,8 +33,8 @@ const WalletModal = ({ open, onClose, balance }: WalletModalProps) => {
       toast.error("Enter a valid M-Pesa phone number");
       return;
     }
-    if (tab === "withdraw" && numAmount > balance) {
-      toast.error("Insufficient balance");
+    if (tab === "withdraw") {
+      toast.error("Withdrawals are only available for deposited funds. Please deposit first.");
       return;
     }
 
@@ -42,11 +42,7 @@ const WalletModal = ({ open, onClose, balance }: WalletModalProps) => {
     // Simulate M-Pesa STK push
     await new Promise((r) => setTimeout(r, 2500));
     setStatus("success");
-    toast.success(
-      tab === "deposit"
-        ? `KES ${numAmount.toLocaleString()} deposited via M-Pesa!`
-        : `KES ${numAmount.toLocaleString()} sent to ${phone}`
-    );
+    toast.success(`KES ${numAmount.toLocaleString()} deposited via M-Pesa!`);
     setTimeout(() => {
       setStatus("idle");
       setAmount("");
@@ -74,6 +70,9 @@ const WalletModal = ({ open, onClose, balance }: WalletModalProps) => {
         <div className="px-5 py-4 text-center border-b border-border bg-secondary/50">
           <p className="text-xs text-muted-foreground uppercase tracking-wider mb-1">Available Balance</p>
           <p className="text-2xl font-mono font-bold text-foreground">KES {balance.toLocaleString()}</p>
+          <span className="inline-block mt-1 text-[9px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full bg-accent text-accent-foreground">
+            Demo Balance
+          </span>
         </div>
 
         {/* Tabs */}
@@ -102,17 +101,29 @@ const WalletModal = ({ open, onClose, balance }: WalletModalProps) => {
           </button>
         </div>
 
-        {status === "success" ? (
+        {tab === "withdraw" ? (
+          /* Withdrawal blocked - demo funds */
+          <div className="px-5 py-8 flex flex-col items-center gap-3 text-center">
+            <div className="w-12 h-12 rounded-full bg-destructive/10 border border-destructive/20 flex items-center justify-center">
+              <AlertTriangle className="w-6 h-6 text-destructive" />
+            </div>
+            <h3 className="text-sm font-semibold text-foreground">Withdrawal Not Available</h3>
+            <p className="text-xs text-muted-foreground leading-relaxed max-w-[250px]">
+              Your current balance is <strong className="text-foreground">demo money</strong>. 
+              You can only withdraw funds that have been deposited via M-Pesa or earned from real-money bets.
+            </p>
+            <Button
+              onClick={() => setTab("deposit")}
+              className="w-full py-3 text-sm font-bold uppercase tracking-wider mt-2"
+            >
+              Deposit Real Money
+            </Button>
+          </div>
+        ) : status === "success" ? (
           <div className="px-5 py-10 flex flex-col items-center gap-3">
             <CheckCircle className="w-12 h-12 text-gaming-green animate-scale-in" />
-            <p className="text-sm font-semibold text-foreground">
-              {tab === "deposit" ? "Deposit Successful!" : "Withdrawal Initiated!"}
-            </p>
-            <p className="text-xs text-muted-foreground">
-              {tab === "deposit"
-                ? "Funds added to your account."
-                : "You'll receive the M-Pesa payment shortly."}
-            </p>
+            <p className="text-sm font-semibold text-foreground">Deposit Successful!</p>
+            <p className="text-xs text-muted-foreground">Funds added to your account.</p>
           </div>
         ) : (
           <form onSubmit={handleSubmit} className="px-5 py-4 space-y-4">
@@ -174,19 +185,15 @@ const WalletModal = ({ open, onClose, balance }: WalletModalProps) => {
               {status === "loading" ? (
                 <span className="flex items-center gap-2">
                   <Loader2 className="w-4 h-4 animate-spin" />
-                  {tab === "deposit" ? "Sending STK Push..." : "Processing..."}
+                  Sending STK Push...
                 </span>
-              ) : tab === "deposit" ? (
-                "Deposit via M-Pesa"
               ) : (
-                "Withdraw to M-Pesa"
+                "Deposit via M-Pesa"
               )}
             </Button>
 
             <p className="text-[10px] text-center text-muted-foreground">
-              {tab === "deposit"
-                ? "You'll receive an M-Pesa prompt on your phone to confirm payment."
-                : "Funds will be sent to your M-Pesa account within 1-5 minutes."}
+              You'll receive an M-Pesa prompt on your phone to confirm payment.
             </p>
           </form>
         )}

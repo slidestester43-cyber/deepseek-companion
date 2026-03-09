@@ -213,7 +213,10 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
 
       {/* Balance display */}
       <div className="flex items-center justify-between pt-2 border-t border-border">
-        <span className="text-xs text-muted-foreground">Balance</span>
+        <div className="flex items-center gap-1.5">
+          <span className="text-xs text-muted-foreground">Balance</span>
+          <span className="text-[8px] font-bold uppercase tracking-wider px-1 py-0.5 rounded bg-accent text-accent-foreground leading-none">Demo</span>
+        </div>
         <span className="font-mono text-sm font-semibold text-foreground">KES {balance.toLocaleString()}</span>
       </div>
     </div>
