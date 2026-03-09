@@ -43,6 +43,7 @@ export function useCrashGame() {
       if (newMult >= cp) {
         setMultiplier(cp);
         setGameState("crashed");
+        setCrashHistory((prev) => [Math.round(cp * 100) / 100, ...prev].slice(0, 20));
         if (intervalRef.current) clearInterval(intervalRef.current);
         
         // Auto-restart after 3s
