@@ -321,31 +321,26 @@ export function useCrashGame() {
   // Place bet
   const placeBet = useCallback(
     async (amount: number, autoCashout: number | null) => {
-      const usingDemo = isDemo;
-
-      if (usingDemo) {
-        updateDemoBalance(-amount);
-      } else if (user) {
-        const { data: balanceData } = await supabase
+      if (!user) return;
+      const { data: balanceData } = await supabase
+        .from("balances")
+        .select("amount")
+        .eq("user_id", user.id)
+        .single();
+      if (balanceData) {
+        const newBalance = Number(balanceData.amount) - amount;
+        if (newBalance < 0) return;
+        await supabase
           .from("balances")
-          .select("amount")
-          .eq("user_id", user.id)
-          .single();
-        if (balanceData) {
-          const newBalance = Number(balanceData.amount) - amount;
-          if (newBalance < 0) return;
-          await supabase
-            .from("balances")
-            .update({ amount: newBalance })
-            .eq("user_id", user.id);
-          await refreshBalance();
-        }
+          .update({ amount: newBalance })
+          .eq("user_id", user.id);
+        await refreshBalance();
       }
 
       betSavedRef.current = false;
-      setCurrentBet({ amount, autoCashout, cashedOut: false, cashoutMultiplier: null, isDemo: usingDemo });
+      setCurrentBet({ amount, autoCashout, cashedOut: false, cashoutMultiplier: null });
     },
-    [user, refreshBalance, isDemo, updateDemoBalance]
+    [user, refreshBalance]
   );
 
   // Cashout
