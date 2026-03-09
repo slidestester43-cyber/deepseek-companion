@@ -1,8 +1,8 @@
-import { useState } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
-import { LogIn } from "lucide-react";
+import { LogIn, X } from "lucide-react";
 
 type GameState = "waiting" | "running" | "crashed";
 
@@ -14,13 +14,26 @@ interface BetControlsProps {
 }
 
 const QUICK_STAKES = [50, 100, 200, 500];
+const COUNTDOWN_SECONDS = 5;
 
 const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsProps) => {
   const [betAmount, setBetAmount] = useState(100);
   const [autoCashout, setAutoCashout] = useState<string>("2.00");
   const [autoCashoutEnabled, setAutoCashoutEnabled] = useState(false);
+  const [countdown, setCountdown] = useState<number | null>(null);
+  const countdownRef = useRef<NodeJS.Timeout | null>(null);
+  const pendingBetRef = useRef<{ amount: number; cashout: number | null } | null>(null);
   const { user, balance } = useAuth();
   const navigate = useNavigate();
+
+  const clearCountdown = useCallback(() => {
+    if (countdownRef.current) {
+      clearInterval(countdownRef.current);
+      countdownRef.current = null;
+    }
+    setCountdown(null);
+    pendingBetRef.current = null;
+  }, []);
 
   const handleBet = () => {
     if (!user) {
@@ -28,8 +41,46 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
       return;
     }
     const cashout = autoCashoutEnabled ? parseFloat(autoCashout) : null;
-    onPlaceBet(betAmount, cashout);
+    pendingBetRef.current = { amount: betAmount, cashout };
+    setCountdown(COUNTDOWN_SECONDS);
   };
+
+  const handleCancel = () => {
+    clearCountdown();
+  };
+
+  // Countdown timer
+  useEffect(() => {
+    if (countdown === null) return;
+
+    if (countdown <= 0) {
+      // Place the bet
+      if (pendingBetRef.current) {
+        onPlaceBet(pendingBetRef.current.amount, pendingBetRef.current.cashout);
+      }
+      clearCountdown();
+      return;
+    }
+
+    countdownRef.current = setTimeout(() => {
+      setCountdown((prev) => (prev !== null ? prev - 1 : null));
+    }, 1000);
+
+    return () => {
+      if (countdownRef.current) clearTimeout(countdownRef.current);
+    };
+  }, [countdown, onPlaceBet, clearCountdown]);
+
+  // Cancel countdown if round starts
+  useEffect(() => {
+    if (gameState === "running" && countdown !== null) {
+      // Place bet immediately when round starts during countdown
+      if (pendingBetRef.current) {
+        onPlaceBet(pendingBetRef.current.amount, pendingBetRef.current.cashout);
+      }
+      clearCountdown();
+    }
+  }, [gameState, countdown, onPlaceBet, clearCountdown]);
 
   // Watch-only mode for non-authenticated users
   if (!user) {
@@ -67,7 +118,8 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
             type="number"
             value={betAmount}
             onChange={(e) => setBetAmount(Number(e.target.value))}
-            className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-foreground font-mono text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50"
+            disabled={countdown !== null}
+            className="w-full bg-secondary border border-border rounded-lg px-4 py-3 text-foreground font-mono text-lg font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
           />
         </div>
 
@@ -77,7 +129,8 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
             <button
               key={stake}
               onClick={() => setBetAmount(stake)}
-              className={`py-1.5 rounded-md text-xs font-semibold transition-colors ${
+              disabled={countdown !== null}
+              className={`py-1.5 rounded-md text-xs font-semibold transition-colors disabled:opacity-50 ${
                 betAmount === stake
                   ? "bg-primary/20 text-primary border border-primary/30"
                   : "bg-secondary text-muted-foreground border border-border hover:bg-secondary/80"
@@ -92,13 +145,15 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
         <div className="grid grid-cols-2 gap-2">
           <button
             onClick={() => setBetAmount(Math.max(50, Math.floor(betAmount / 2)))}
-            className="py-1.5 rounded-md text-xs font-semibold bg-secondary text-muted-foreground border border-border hover:text-foreground transition-colors"
+            disabled={countdown !== null}
+            className="py-1.5 rounded-md text-xs font-semibold bg-secondary text-muted-foreground border border-border hover:text-foreground transition-colors disabled:opacity-50"
           >
             ½
           </button>
           <button
             onClick={() => setBetAmount(betAmount * 2)}
-            className="py-1.5 rounded-md text-xs font-semibold bg-secondary text-muted-foreground border border-border hover:text-foreground transition-colors"
+            disabled={countdown !== null}
+            className="py-1.5 rounded-md text-xs font-semibold bg-secondary text-muted-foreground border border-border hover:text-foreground transition-colors disabled:opacity-50"
           >
             2×
           </button>
@@ -111,6 +166,7 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
           <label className="text-xs text-muted-foreground">Auto Cash Out</label>
           <button
             onClick={() => setAutoCashoutEnabled(!autoCashoutEnabled)}
+            disabled={countdown !== null}
             className={`w-9 h-5 rounded-full transition-colors relative ${
               autoCashoutEnabled ? "bg-primary" : "bg-secondary"
             }`}
@@ -128,7 +184,8 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
               type="text"
               value={autoCashout}
               onChange={(e) => setAutoCashout(e.target.value)}
-              className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-foreground font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50"
+              disabled={countdown !== null}
+              className="w-full bg-secondary border border-border rounded-lg px-4 py-2.5 text-foreground font-mono font-semibold focus:outline-none focus:ring-2 focus:ring-primary/50 disabled:opacity-50"
             />
             <span className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm">x</span>
           </div>
@@ -143,6 +200,35 @@ const BetControls = ({ gameState, onPlaceBet, onCashout, hasBet }: BetControlsPr
         >
           Cash Out
         </button>
+      ) : countdown !== null ? (
+        <div className="space-y-2">
+          {/* Countdown progress */}
+          <div className="bg-secondary border border-primary/30 rounded-xl p-4 text-center space-y-2">
+            <p className="text-xs text-muted-foreground uppercase tracking-wider">Placing bet in</p>
+            <div className="flex items-center justify-center gap-2">
+              <span className="font-mono text-3xl font-bold text-primary animate-pulse">{countdown}</span>
+              <span className="text-sm text-muted-foreground">sec</span>
+            </div>
+            <p className="text-xs text-muted-foreground">
+              KES {betAmount.toLocaleString()} bet
+              {autoCashoutEnabled ? ` • Auto cashout at ${autoCashout}x` : ""}
+            </p>
+            {/* Progress bar */}
+            <div className="w-full bg-border rounded-full h-1.5 overflow-hidden">
+              <div
+                className="h-full bg-primary rounded-full transition-all duration-1000 ease-linear"
+                style={{ width: `${((COUNTDOWN_SECONDS - countdown) / COUNTDOWN_SECONDS) * 100}%` }}
+              />
+            </div>
+          </div>
+          <button
+            onClick={handleCancel}
+            className="w-full py-3 rounded-xl font-bold text-sm uppercase tracking-wider bg-destructive/20 text-destructive border border-destructive/30 transition-all hover:bg-destructive/30 active:scale-[0.98] flex items-center justify-center gap-2"
+          >
+            <X className="w-4 h-4" />
+            Cancel Bet
+          </button>
+        </div>
       ) : (
         <button
           onClick={handleBet}
