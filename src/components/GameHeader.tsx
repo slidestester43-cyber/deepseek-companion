@@ -1,4 +1,4 @@
-import { Rocket, Shield, Volume2, VolumeX, LogIn, LogOut } from "lucide-react";
+import { Rocket, Shield, Volume2, VolumeX, LogIn, LogOut, User } from "lucide-react";
 import { useSound } from "@/contexts/SoundContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
@@ -52,11 +52,18 @@ const GameHeader = () => {
               </span>
             </div>
             <button
-              onClick={signOut}
+              onClick={() => navigate("/profile")}
               className="w-8 h-8 rounded-full bg-primary/20 border border-primary/30 flex items-center justify-center hover:bg-primary/30 transition-colors"
+              title="Profile"
+            >
+              <User className="w-3.5 h-3.5 text-primary" />
+            </button>
+            <button
+              onClick={signOut}
+              className="w-8 h-8 rounded-full bg-secondary border border-border flex items-center justify-center hover:bg-secondary/80 transition-colors"
               title="Sign out"
             >
-              <LogOut className="w-3.5 h-3.5 text-primary" />
+              <LogOut className="w-3.5 h-3.5 text-muted-foreground" />
             </button>
           </>
         ) : (

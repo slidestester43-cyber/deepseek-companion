@@ -14,6 +14,7 @@ export function useCrashGame() {
   const [multiplier, setMultiplier] = useState(1.0);
   const [crashPoint, setCrashPoint] = useState(0);
   const [currentBet, setCurrentBet] = useState<Bet | null>(null);
+  const [roundCount, setRoundCount] = useState(0);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef(0);
 
@@ -30,6 +31,7 @@ export function useCrashGame() {
     setCrashPoint(cp);
     setMultiplier(1.0);
     setGameState("running");
+    setRoundCount((c) => c + 1);
     startTimeRef.current = Date.now();
 
     intervalRef.current = setInterval(() => {
@@ -98,6 +100,7 @@ export function useCrashGame() {
     multiplier,
     crashPoint,
     currentBet,
+    roundCount,
     placeBet,
     cashout,
   };
