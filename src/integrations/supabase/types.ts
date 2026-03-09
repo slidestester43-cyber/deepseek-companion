@@ -14,120 +14,16 @@ export type Database = {
   }
   public: {
     Tables: {
-      balances: {
-        Row: {
-          amount: number
-          id: string
-          updated_at: string
-          user_id: string
-        }
-        Insert: {
-          amount?: number
-          id?: string
-          updated_at?: string
-          user_id: string
-        }
-        Update: {
-          amount?: number
-          id?: string
-          updated_at?: string
-          user_id?: string
-        }
-        Relationships: []
-      }
-      bet_history: {
-        Row: {
-          bet_amount: number
-          cashout_multiplier: number | null
-          crashed: boolean
-          created_at: string
-          id: string
-          profit: number
-          user_id: string
-        }
-        Insert: {
-          bet_amount: number
-          cashout_multiplier?: number | null
-          crashed?: boolean
-          created_at?: string
-          id?: string
-          profit?: number
-          user_id: string
-        }
-        Update: {
-          bet_amount?: number
-          cashout_multiplier?: number | null
-          crashed?: boolean
-          created_at?: string
-          id?: string
-          profit?: number
-          user_id?: string
-        }
-        Relationships: []
-      }
-      profiles: {
-        Row: {
-          avatar_url: string | null
-          created_at: string
-          display_name: string | null
-          id: string
-          updated_at: string
-          user_id: string
-          username: string | null
-        }
-        Insert: {
-          avatar_url?: string | null
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          updated_at?: string
-          user_id: string
-          username?: string | null
-        }
-        Update: {
-          avatar_url?: string | null
-          created_at?: string
-          display_name?: string | null
-          id?: string
-          updated_at?: string
-          user_id?: string
-          username?: string | null
-        }
-        Relationships: []
-      }
-      user_roles: {
-        Row: {
-          id: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Insert: {
-          id?: string
-          role: Database["public"]["Enums"]["app_role"]
-          user_id: string
-        }
-        Update: {
-          id?: string
-          role?: Database["public"]["Enums"]["app_role"]
-          user_id?: string
-        }
-        Relationships: []
-      }
+      [_ in never]: never
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      has_role: {
-        Args: {
-          _role: Database["public"]["Enums"]["app_role"]
-          _user_id: string
-        }
-        Returns: boolean
-      }
+      [_ in never]: never
     }
     Enums: {
-      app_role: "admin" | "moderator" | "user"
+      [_ in never]: never
     }
     CompositeTypes: {
       [_ in never]: never
@@ -254,8 +150,6 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {
-      app_role: ["admin", "moderator", "user"],
-    },
+    Enums: {},
   },
 } as const
