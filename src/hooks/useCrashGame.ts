@@ -168,7 +168,6 @@ export function useCrashGame() {
 
   const placeBet = useCallback(
     async (amount: number, autoCashout: number | null) => {
-      if (gameState === "running") return;
 
       // Deduct balance immediately
       if (user) {
