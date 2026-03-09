@@ -266,7 +266,12 @@ export function useCrashGame() {
         setCrashPoint(cp);
         setMultiplier(cp);
         setGameState("crashed");
-        setCrashHistory(prev => [Math.round(cp * 100) / 100, ...prev].slice(0, 20));
+        // Use the shared history from the leader if available
+        if (payload.history && Array.isArray(payload.history)) {
+          setCrashHistory(payload.history);
+        } else {
+          setCrashHistory(prev => [Math.round(cp * 100) / 100, ...prev].slice(0, 20));
+        }
       }
     });
 
