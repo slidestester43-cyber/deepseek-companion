@@ -50,7 +50,7 @@ const Auth = () => {
           <div className="w-14 h-14 rounded-xl bg-primary flex items-center justify-center glow-primary">
             <Rocket className="w-7 h-7 text-primary-foreground" />
           </div>
-          <h1 className="text-2xl font-bold text-foreground tracking-tight">Maboompesa</h1>
+          <h1 className="text-2xl font-bold text-foreground tracking-tight">mozzatbet</h1>
           <p className="text-sm text-muted-foreground">
             {mode === "login" ? "Welcome back! Sign in to play." : "Create your account to start playing."}
           </p>

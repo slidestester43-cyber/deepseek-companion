@@ -9,7 +9,7 @@ import { useGameSounds } from "@/hooks/useGameSounds";
 import { useEffect, useRef } from "react";
 
 const Index = () => {
-  const { gameState, multiplier, crashPoint, currentBet, roundCount, placeBet, cashout } = useCrashGame();
+  const { gameState, multiplier, crashPoint, currentBet, roundCount, crashHistory, placeBet, cashout } = useCrashGame();
   const { playRoundStart, playCashout, playCrash } = useGameSounds();
   const prevStateRef = useRef(gameState);
   const prevCashedOutRef = useRef(false);
@@ -36,7 +36,7 @@ const Index = () => {
   return (
     <div className="min-h-screen flex flex-col bg-background">
       <GameHeader />
-      <CrashHistory />
+      <CrashHistory history={crashHistory} />
 
       <div className="flex-1 p-3 md:p-4 grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[320px_1fr_320px] gap-3 md:gap-4 max-w-[1600px] mx-auto w-full">
         {/* Live bets + Chat - LEFT side (hidden on mobile) */}

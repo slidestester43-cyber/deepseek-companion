@@ -15,6 +15,7 @@ export function useCrashGame() {
   const [crashPoint, setCrashPoint] = useState(0);
   const [currentBet, setCurrentBet] = useState<Bet | null>(null);
   const [roundCount, setRoundCount] = useState(0);
+  const [crashHistory, setCrashHistory] = useState<number[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef(0);
 
@@ -42,6 +43,7 @@ export function useCrashGame() {
       if (newMult >= cp) {
         setMultiplier(cp);
         setGameState("crashed");
+        setCrashHistory((prev) => [Math.round(cp * 100) / 100, ...prev].slice(0, 20));
         if (intervalRef.current) clearInterval(intervalRef.current);
         
         // Auto-restart after 3s
@@ -101,6 +103,7 @@ export function useCrashGame() {
     crashPoint,
     currentBet,
     roundCount,
+    crashHistory,
     placeBet,
     cashout,
   };
