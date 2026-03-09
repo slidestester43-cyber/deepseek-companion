@@ -100,6 +100,7 @@ export function useCrashGame() {
     multiplier,
     crashPoint,
     currentBet,
+    roundCount,
     placeBet,
     cashout,
   };

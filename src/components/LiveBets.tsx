@@ -33,11 +33,16 @@ function generatePlayers(count: number) {
   return players;
 }
 
-const LiveBets = () => {
+interface LiveBetsProps {
+  roundKey?: number;
+}
+
+const LiveBets = ({ roundKey = 0 }: LiveBetsProps) => {
   const bets = useMemo(() => {
     const count = Math.floor(Math.random() * 51) + 50; // 50–100
     return generatePlayers(count);
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [roundKey]);
 
   const totalBets = bets.length;
   const totalAmount = bets.reduce((s, b) => s + b.amount, 0);
