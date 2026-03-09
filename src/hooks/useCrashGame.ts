@@ -4,8 +4,6 @@ import { useAuth } from "@/contexts/AuthContext";
 
 type GameState = "waiting" | "running" | "crashed";
 
-const CRASH_HISTORY_KEY = "mozzatbet_crash_history";
-
 interface Bet {
   amount: number;
   autoCashout: number | null;
@@ -14,38 +12,45 @@ interface Bet {
   isDemo: boolean;
 }
 
+const CHANNEL_NAME = "crash-game-live";
+const WAIT_DURATION = 5000;
+const CRASH_DISPLAY = 3000;
+
 export function useCrashGame() {
   const [gameState, setGameState] = useState<GameState>("waiting");
   const [multiplier, setMultiplier] = useState(1.0);
   const [crashPoint, setCrashPoint] = useState(0);
   const [currentBet, setCurrentBet] = useState<Bet | null>(null);
   const [roundCount, setRoundCount] = useState(0);
-  const [crashHistory, setCrashHistory] = useState<number[]>(() => {
-    try {
-      const stored = localStorage.getItem(CRASH_HISTORY_KEY);
-      return stored ? JSON.parse(stored) : [];
-    } catch { return []; }
-  });
-  const intervalRef = useRef<NodeJS.Timeout | null>(null);
+  const [crashHistory, setCrashHistory] = useState<number[]>([]);
+
+  const tickRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const timeoutsRef = useRef<ReturnType<typeof setTimeout>[]>([]);
   const startTimeRef = useRef(0);
   const betSavedRef = useRef(false);
+  const isLeaderRef = useRef(false);
+  const channelRef = useRef<any>(null);
+  const clientId = useRef(`${Date.now()}-${Math.random().toString(36).slice(2)}`);
+  const mountedRef = useRef(true);
+
   const { user, refreshBalance, isDemo, updateDemoBalance } = useAuth();
 
-  // Persist crash history to localStorage
-  const updateCrashHistory = useCallback((cp: number) => {
-    setCrashHistory((prev) => {
-      const next = [Math.round(cp * 100) / 100, ...prev].slice(0, 20);
-      localStorage.setItem(CRASH_HISTORY_KEY, JSON.stringify(next));
-      return next;
-    });
+  // Cleanup helper
+  const clearAllTimers = useCallback(() => {
+    timeoutsRef.current.forEach(clearTimeout);
+    timeoutsRef.current = [];
+    if (tickRef.current) {
+      clearInterval(tickRef.current);
+      tickRef.current = null;
+    }
   }, []);
 
   const generateCrashPoint = () => {
     const r = Math.random();
-    const crash = Math.max(1.0, 1 / (1 - r) * 0.97);
-    return Math.min(crash, 100);
+    return Math.min(Math.max(1.0, 1 / (1 - r) * 0.97), 100);
   };
 
+  // Save bet result to DB
   const saveBetResult = useCallback(async (bet: Bet, crashed: boolean) => {
     if (bet.isDemo || !user || betSavedRef.current) return;
     betSavedRef.current = true;
@@ -118,40 +123,147 @@ export function useCrashGame() {
     }
   }, [user, refreshBalance]);
 
-  const startRound = useCallback(() => {
-    const cp = generateCrashPoint();
-    setCrashPoint(cp);
-    setMultiplier(1.0);
-    setGameState("running");
-    setRoundCount((c) => c + 1);
-    betSavedRef.current = false;
-    startTimeRef.current = Date.now();
+  // Start multiplier ticker
+  const startTicker = useCallback((serverStart: number) => {
+    if (tickRef.current) clearInterval(tickRef.current);
+    startTimeRef.current = serverStart;
+    tickRef.current = setInterval(() => {
+      const elapsed = (Date.now() - serverStart) / 1000;
+      const m = Math.pow(Math.E, elapsed * 0.15);
+      setMultiplier(m);
+    }, 50);
+  }, []);
 
-    // Emit crash point for admin panel
-    window.dispatchEvent(new CustomEvent("admin-crash-point", { detail: cp }));
+  // Leader round function stored in ref to allow recursion
+  const startLeaderRoundRef = useRef<() => void>(() => {});
 
-    intervalRef.current = setInterval(() => {
-      const elapsed = (Date.now() - startTimeRef.current) / 1000;
-      const newMult = Math.pow(Math.E, elapsed * 0.15);
+  useEffect(() => {
+    startLeaderRoundRef.current = () => {
+      if (!isLeaderRef.current || !channelRef.current || !mountedRef.current) return;
+      clearAllTimers();
 
-      if (newMult >= cp) {
+      const ch = channelRef.current;
+
+      // Phase 1: Waiting
+      setGameState("waiting");
+      setCurrentBet(null);
+      setMultiplier(1.0);
+
+      ch.send({ type: "broadcast", event: "phase", payload: { phase: "waiting" } });
+
+      // Phase 2: Running after wait
+      const t1 = setTimeout(() => {
+        if (!isLeaderRef.current || !mountedRef.current) return;
+
+        const cp = generateCrashPoint();
+        const startTime = Date.now();
+
+        ch.send({ type: "broadcast", event: "phase", payload: { phase: "running", startTime } });
+        window.dispatchEvent(new CustomEvent("admin-crash-point", { detail: cp }));
+
+        // Leader starts its own ticker
+        setGameState("running");
+        setRoundCount(c => c + 1);
+        betSavedRef.current = false;
+        startTicker(startTime);
+
+        // Phase 3: Crash
+        const crashDelay = Math.log(cp) / 0.15 * 1000;
+        const t2 = setTimeout(() => {
+          if (!isLeaderRef.current || !mountedRef.current) return;
+
+          ch.send({ type: "broadcast", event: "phase", payload: { phase: "crashed", crashPoint: cp } });
+
+          // Leader handles crash locally
+          if (tickRef.current) clearInterval(tickRef.current);
+          tickRef.current = null;
+          setCrashPoint(cp);
+          setMultiplier(cp);
+          setGameState("crashed");
+          setCrashHistory(prev => [Math.round(cp * 100) / 100, ...prev].slice(0, 20));
+
+          // Next round
+          const t3 = setTimeout(() => {
+            startLeaderRoundRef.current();
+          }, CRASH_DISPLAY);
+          timeoutsRef.current.push(t3);
+        }, crashDelay);
+        timeoutsRef.current.push(t2);
+      }, WAIT_DURATION);
+      timeoutsRef.current.push(t1);
+    };
+  }, [clearAllTimers, startTicker]);
+
+  // Evaluate leadership from presence
+  const evaluateLeadership = useCallback(() => {
+    if (!channelRef.current) return;
+    const ps = channelRef.current.presenceState();
+    const clients: { id: string; at: number }[] = [];
+    Object.values(ps).forEach((arr: any) => {
+      arr.forEach((p: any) => clients.push({ id: p.cid, at: p.at }));
+    });
+    if (clients.length === 0) return;
+
+    clients.sort((a, b) => a.at - b.at);
+    const wasLeader = isLeaderRef.current;
+    isLeaderRef.current = clients[0].id === clientId.current;
+
+    if (!wasLeader && isLeaderRef.current) {
+      console.log("[CrashGame] Became leader, starting game loop");
+      startLeaderRoundRef.current();
+    }
+  }, []);
+
+  // Setup Realtime channel
+  useEffect(() => {
+    mountedRef.current = true;
+    const ch = supabase.channel(CHANNEL_NAME, {
+      config: { broadcast: { self: false } }
+    });
+    channelRef.current = ch;
+
+    // Followers handle broadcast events
+    ch.on("broadcast", { event: "phase" }, ({ payload }) => {
+      if (isLeaderRef.current) return; // Leader handles locally
+
+      const { phase } = payload;
+      if (phase === "waiting") {
+        clearAllTimers();
+        setGameState("waiting");
+        setCurrentBet(null);
+        setMultiplier(1.0);
+      } else if (phase === "running") {
+        setGameState("running");
+        setRoundCount(c => c + 1);
+        betSavedRef.current = false;
+        startTicker(payload.startTime);
+      } else if (phase === "crashed") {
+        if (tickRef.current) clearInterval(tickRef.current);
+        tickRef.current = null;
+        const cp = payload.crashPoint;
+        setCrashPoint(cp);
         setMultiplier(cp);
         setGameState("crashed");
-        updateCrashHistory(cp);
-        if (intervalRef.current) clearInterval(intervalRef.current);
-
-        setTimeout(() => {
-          setGameState("waiting");
-          setCurrentBet(null);
-          setTimeout(startRound, 2000);
-        }, 3000);
-      } else {
-        setMultiplier(newMult);
+        setCrashHistory(prev => [Math.round(cp * 100) / 100, ...prev].slice(0, 20));
       }
-    }, 50);
-  }, [updateCrashHistory]);
+    });
 
-  // Auto cashout check
+    ch.on("presence", { event: "sync" }, evaluateLeadership);
+
+    ch.subscribe(async (status) => {
+      if (status === "SUBSCRIBED") {
+        await ch.track({ cid: clientId.current, at: Date.now() });
+      }
+    });
+
+    return () => {
+      mountedRef.current = false;
+      clearAllTimers();
+      supabase.removeChannel(ch);
+    };
+  }, [clearAllTimers, startTicker, evaluateLeadership]);
+
+  // Auto cashout
   useEffect(() => {
     if (
       gameState === "running" &&
@@ -163,7 +275,6 @@ export function useCrashGame() {
       const updatedBet = { ...currentBet, cashedOut: true, cashoutMultiplier: multiplier };
       setCurrentBet(updatedBet);
       if (updatedBet.isDemo) {
-        // Credit demo balance
         updateDemoBalance(updatedBet.amount * multiplier);
       } else {
         saveBetResult(updatedBet, false);
@@ -171,34 +282,23 @@ export function useCrashGame() {
     }
   }, [multiplier, gameState, currentBet, saveBetResult, updateDemoBalance]);
 
-  // Save loss when crashed without cashout
+  // Save loss on crash
   useEffect(() => {
     if (gameState === "crashed" && currentBet && !currentBet.cashedOut) {
       if (!currentBet.isDemo) {
         saveBetResult(currentBet, true);
       }
-      // Demo losses: balance already deducted at bet time
     }
   }, [gameState, currentBet, saveBetResult]);
 
-  // Start first round
-  useEffect(() => {
-    const timeout = setTimeout(startRound, 2000);
-    return () => {
-      clearTimeout(timeout);
-      if (intervalRef.current) clearInterval(intervalRef.current);
-    };
-  }, [startRound]);
-
+  // Place bet
   const placeBet = useCallback(
     async (amount: number, autoCashout: number | null) => {
       const usingDemo = isDemo;
 
       if (usingDemo) {
-        // Deduct from demo balance
         updateDemoBalance(-amount);
       } else if (user) {
-        // Deduct from real balance
         const { data: balanceData } = await supabase
           .from("balances")
           .select("amount")
@@ -218,9 +318,10 @@ export function useCrashGame() {
       betSavedRef.current = false;
       setCurrentBet({ amount, autoCashout, cashedOut: false, cashoutMultiplier: null, isDemo: usingDemo });
     },
-    [gameState, user, refreshBalance, isDemo, updateDemoBalance]
+    [user, refreshBalance, isDemo, updateDemoBalance]
   );
 
+  // Cashout
   const cashout = useCallback(() => {
     if (gameState !== "running" || !currentBet || currentBet.cashedOut) return;
     const updatedBet = { ...currentBet, cashedOut: true, cashoutMultiplier: multiplier };
