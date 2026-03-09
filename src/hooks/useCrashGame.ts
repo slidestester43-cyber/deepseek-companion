@@ -348,12 +348,8 @@ export function useCrashGame() {
     if (gameState !== "running" || !currentBet || currentBet.cashedOut) return;
     const updatedBet = { ...currentBet, cashedOut: true, cashoutMultiplier: multiplier };
     setCurrentBet(updatedBet);
-    if (updatedBet.isDemo) {
-      updateDemoBalance(updatedBet.amount * multiplier);
-    } else {
-      saveBetResult(updatedBet, false);
-    }
-  }, [gameState, currentBet, multiplier, saveBetResult, updateDemoBalance]);
+    saveBetResult(updatedBet, false);
+  }, [gameState, currentBet, multiplier, saveBetResult]);
 
   return {
     gameState,

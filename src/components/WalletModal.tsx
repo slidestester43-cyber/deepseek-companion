@@ -15,7 +15,7 @@ type Status = "idle" | "loading" | "success";
 const QUICK_AMOUNTS = [50, 100, 200, 500, 1000, 5000];
 
 const WalletModal = ({ open, onClose }: WalletModalProps) => {
-  const { balance, demoBalance, isDemo } = useAuth();
+  const { balance } = useAuth();
   const [tab, setTab] = useState<Tab>("deposit");
   const [amount, setAmount] = useState("");
   const [phone, setPhone] = useState("");

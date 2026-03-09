@@ -78,7 +78,7 @@ const Index = () => {
             </div>
           )}
 
-          <LiveChat />
+          
         </div>
 
         {/* Mobile: stacked bets below controls */}

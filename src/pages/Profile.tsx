@@ -16,7 +16,7 @@ interface BetRecord {
 }
 
 const Profile = () => {
-  const { user, balance, demoBalance, isDemo, refreshBalance, loading } = useAuth();
+  const { user, balance, refreshBalance, loading } = useAuth();
   const navigate = useNavigate();
   const [bets, setBets] = useState<BetRecord[]>([]);
   const [loadingBets, setLoadingBets] = useState(true);
