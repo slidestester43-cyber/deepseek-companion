@@ -13,30 +13,29 @@ const Admin = () => {
   const [checkingRole, setCheckingRole] = useState(true);
   const [currentCrashPoint, setCurrentCrashPoint] = useState<number | null>(null);
   const [upcomingPredictions, setUpcomingPredictions] = useState<number[]>([]);
-  const [recentRounds, setRecentRounds] = useState<{ crash_point: number; created_at: string }[]>([]);
+  const [recentBets, setRecentBets] = useState<{ bet_amount: number; cashout_multiplier: number | null; crashed: boolean; profit: number; created_at: string }[]>([]);
   const [stats, setStats] = useState({ totalBets: 0, totalWagered: 0, totalProfit: 0, activeUsers: 0 });
 
-  // Check admin role
+  // Check admin role via user_roles table
   useEffect(() => {
     if (!user) {
       setCheckingRole(false);
       return;
     }
     const checkAdmin = async () => {
-      const { data } = await supabase
+      const { data, error } = await (supabase as any)
         .from("user_roles")
         .select("role")
         .eq("user_id", user.id)
         .eq("role", "admin")
         .single();
-      setIsAdmin(!!data);
+      setIsAdmin(!!data && !error);
       setCheckingRole(false);
-      if (!data) toast.error("Access denied. Admin role required.");
+      if (!data || error) toast.error("Access denied. Admin role required.");
     };
     checkAdmin();
   }, [user]);
 
-  // Redirect non-admin
   useEffect(() => {
     if (!loading && !checkingRole && (!user || !isAdmin)) {
       navigate("/");
@@ -56,43 +55,36 @@ const Admin = () => {
 
   // Listen for crash point updates via custom event
   useEffect(() => {
-    const handler = (e: CustomEvent) => {
-      setCurrentCrashPoint(e.detail);
+    const handler = (e: Event) => {
+      setCurrentCrashPoint((e as CustomEvent).detail);
     };
-    window.addEventListener("admin-crash-point" as any, handler);
-    return () => window.removeEventListener("admin-crash-point" as any, handler);
+    window.addEventListener("admin-crash-point", handler);
+    return () => window.removeEventListener("admin-crash-point", handler);
   }, []);
 
-  // Fetch recent rounds from DB
+  // Fetch data
   useEffect(() => {
     if (!isAdmin) return;
     const fetchData = async () => {
-      const { data: rounds } = await supabase
-        .from("crash_rounds")
-        .select("crash_point, created_at")
+      // Fetch recent bets from all users (admin RLS policy allows this)
+      const { data: bets } = await supabase
+        .from("bet_history")
+        .select("bet_amount, cashout_multiplier, crashed, profit, created_at")
         .order("created_at", { ascending: false })
         .limit(50);
-      if (rounds) setRecentRounds(rounds);
+      if (bets) setRecentBets(bets);
 
-      // Fetch stats
+      // Stats
       const { count: betCount } = await supabase
         .from("bet_history")
         .select("*", { count: "exact", head: true });
 
-      const { data: betData } = await supabase
-        .from("bet_history")
-        .select("bet_amount, profit");
-
-      if (betData) {
-        const totalWagered = betData.reduce((s, b) => s + Number(b.bet_amount), 0);
-        const totalProfit = betData.reduce((s, b) => s + Number(b.profit), 0);
+      if (bets) {
+        const totalWagered = bets.reduce((s, b) => s + Number(b.bet_amount), 0);
+        const totalProfit = bets.reduce((s, b) => s + Number(b.profit), 0);
         setStats(prev => ({ ...prev, totalBets: betCount || 0, totalWagered, totalProfit }));
       }
 
-      const { data: profiles } = await supabase
-        .from("profiles")
-        .select("id", { count: "exact", head: true });
-      // Use count from profiles
       const { count: userCount } = await supabase
         .from("profiles")
         .select("*", { count: "exact", head: true });
@@ -197,21 +189,31 @@ const Admin = () => {
           </div>
         </div>
 
-        {/* Recent Rounds History */}
+        {/* Recent Bets from All Users */}
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-border">
-            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Recent Crash Rounds</h3>
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Recent Bets (All Users)</h3>
           </div>
-          {recentRounds.length === 0 ? (
-            <div className="p-8 text-center text-sm text-muted-foreground">No rounds recorded yet</div>
+          {recentBets.length === 0 ? (
+            <div className="p-8 text-center text-sm text-muted-foreground">No bets recorded yet</div>
           ) : (
             <div className="divide-y divide-border/30 max-h-[400px] overflow-y-auto">
-              {recentRounds.map((round, i) => (
-                <div key={i} className="px-4 py-3 flex items-center justify-between">
-                  <span className="text-xs text-muted-foreground">{new Date(round.created_at).toLocaleString()}</span>
-                  <span className={`font-mono text-sm font-bold ${getColor(Number(round.crash_point))}`}>
-                    {Number(round.crash_point).toFixed(2)}x
-                  </span>
+              {recentBets.map((bet, i) => (
+                <div key={i} className={`px-4 py-3 flex items-center justify-between ${bet.crashed ? "bg-destructive/5" : "bg-gaming-green/5"}`}>
+                  <div>
+                    <p className="font-mono text-sm font-semibold text-foreground">KES {Number(bet.bet_amount).toLocaleString()}</p>
+                    <p className="text-[10px] text-muted-foreground">{new Date(bet.created_at).toLocaleString()}</p>
+                  </div>
+                  <div className="text-right">
+                    {bet.crashed ? (
+                      <span className="text-destructive font-mono text-sm font-semibold">Crashed</span>
+                    ) : (
+                      <span className="text-gaming-green font-mono text-sm font-semibold">{bet.cashout_multiplier ? Number(bet.cashout_multiplier).toFixed(2) : "—"}x</span>
+                    )}
+                    <p className={`text-[10px] font-mono ${Number(bet.profit) >= 0 ? "text-gaming-green" : "text-destructive"}`}>
+                      {Number(bet.profit) >= 0 ? "+" : ""}KES {Number(bet.profit).toLocaleString()}
+                    </p>
+                  </div>
                 </div>
               ))}
             </div>
