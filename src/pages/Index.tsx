@@ -43,6 +43,7 @@ const Index = () => {
         {/* Live bets + Chat - LEFT side (hidden on mobile) */}
         <div className="hidden lg:flex lg:flex-col gap-3 md:gap-4 overflow-hidden">
           <LiveBets roundKey={roundCount} />
+          <Leaderboard />
           <LiveChat />
         </div>
 
