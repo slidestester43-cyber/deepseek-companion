@@ -1,13 +1,19 @@
-import { createContext, useContext, useEffect, useState, ReactNode } from "react";
+import { createContext, useContext, useEffect, useState, ReactNode, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Session, User } from "@supabase/supabase-js";
+
+const DEMO_INITIAL_BALANCE = 1000;
+const DEMO_BALANCE_KEY = "mozzatbet_demo_balance";
 
 interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  balance: number;
+  balance: number; // real balance (from DB, 0 if not logged in)
+  demoBalance: number; // demo balance (localStorage-backed)
+  isDemo: boolean; // true when playing with demo money
   refreshBalance: () => Promise<void>;
+  updateDemoBalance: (delta: number) => void;
   signOut: () => Promise<void>;
 }
 
@@ -16,7 +22,10 @@ const AuthContext = createContext<AuthContextType>({
   session: null,
   loading: true,
   balance: 0,
+  demoBalance: DEMO_INITIAL_BALANCE,
+  isDemo: true,
   refreshBalance: async () => {},
+  updateDemoBalance: () => {},
   signOut: async () => {},
 });
 
@@ -25,6 +34,13 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
   const [loading, setLoading] = useState(true);
   const [balance, setBalance] = useState(0);
+  const [demoBalance, setDemoBalance] = useState(() => {
+    const stored = localStorage.getItem(DEMO_BALANCE_KEY);
+    return stored ? Number(stored) : DEMO_INITIAL_BALANCE;
+  });
+
+  // Demo balance is used when not logged in, or when logged in but real balance is 0
+  const isDemo = !user || balance === 0;
 
   const refreshBalance = async () => {
     if (!user) return;
@@ -36,15 +52,21 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     if (data) setBalance(Number(data.amount));
   };
 
+  const updateDemoBalance = useCallback((delta: number) => {
+    setDemoBalance((prev) => {
+      const next = Math.max(0, prev + delta);
+      localStorage.setItem(DEMO_BALANCE_KEY, String(next));
+      return next;
+    });
+  }, []);
+
   useEffect(() => {
-    // Set up auth listener FIRST
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    // Then check for existing session
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
@@ -54,7 +76,6 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
     return () => subscription.unsubscribe();
   }, []);
 
-  // Fetch balance when user changes
   useEffect(() => {
     if (user) {
       refreshBalance();
@@ -68,7 +89,7 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   };
 
   return (
-    <AuthContext.Provider value={{ user, session, loading, balance, refreshBalance, signOut }}>
+    <AuthContext.Provider value={{ user, session, loading, balance, demoBalance, isDemo, refreshBalance, updateDemoBalance, signOut }}>
       {children}
     </AuthContext.Provider>
   );
