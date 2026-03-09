@@ -4,6 +4,7 @@ import { useSound } from "@/contexts/SoundContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import WalletModal from "@/components/WalletModal";
+import { supabase } from "@/integrations/supabase/client";
 
 const GameHeader = () => {
   const { muted, toggleMute } = useSound();
