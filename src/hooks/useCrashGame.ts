@@ -17,25 +17,7 @@ export function useCrashGame() {
   const [crashPoint, setCrashPoint] = useState(0);
   const [currentBet, setCurrentBet] = useState<Bet | null>(null);
   const [roundCount, setRoundCount] = useState(0);
-  const [crashHistory, setCrashHistory] = useState<number[]>(() => {
-    // Pre-populate with realistic history biased toward >2x
-    const initial: number[] = [];
-    for (let i = 0; i < 20; i++) {
-      const r = Math.random();
-      // Bias: ~65% chance of >2x
-      const val = r < 0.15
-        ? Math.round((1.0 + Math.random() * 0.5) * 100) / 100
-        : r < 0.35
-        ? Math.round((1.5 + Math.random() * 0.8) * 100) / 100
-        : r < 0.7
-        ? Math.round((2.0 + Math.random() * 3.0) * 100) / 100
-        : r < 0.9
-        ? Math.round((5.0 + Math.random() * 10.0) * 100) / 100
-        : Math.round((15.0 + Math.random() * 50.0) * 100) / 100;
-      initial.push(val);
-    }
-    return initial;
-  });
+  const [crashHistory, setCrashHistory] = useState<number[]>([]);
   const intervalRef = useRef<NodeJS.Timeout | null>(null);
   const startTimeRef = useRef(0);
   const betSavedRef = useRef(false);
@@ -43,12 +25,8 @@ export function useCrashGame() {
 
   const generateCrashPoint = () => {
     const r = Math.random();
-    // Biased toward higher multipliers: ~60% chance of >2x
-    if (r < 0.15) return Math.round((1.0 + Math.random() * 0.5) * 100) / 100;
-    if (r < 0.35) return Math.round((1.5 + Math.random() * 0.8) * 100) / 100;
-    if (r < 0.65) return Math.round((2.0 + Math.random() * 3.0) * 100) / 100;
-    if (r < 0.85) return Math.round((5.0 + Math.random() * 10.0) * 100) / 100;
-    return Math.round((15.0 + Math.random() * 50.0) * 100) / 100;
+    const crash = Math.max(1.0, 1 / (1 - r) * 0.97);
+    return Math.min(crash, 100);
   };
 
   // Save bet result to database
