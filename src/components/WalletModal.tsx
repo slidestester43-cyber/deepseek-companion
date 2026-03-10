@@ -86,7 +86,7 @@ const WalletModal = ({ open, onClose }: WalletModalProps) => {
               <p className="text-[10px] text-muted-foreground mt-0.5">Deposit to start playing with real money</p>
             )}
           </div>
-          {/* Demo balance */}
+          
         </div>
 
         {/* Tabs */}
