@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useRef } from "react";
-import { Rocket } from "lucide-react";
+import { Rocket, Plane } from "lucide-react";
 
 type GameState = "waiting" | "running" | "crashed";
 
@@ -11,9 +11,8 @@ interface MultiplierDisplayProps {
 
 const MultiplierDisplay = ({ gameState, multiplier, crashPoint }: MultiplierDisplayProps) => {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const pointsRef = useRef<{ x: number; y: number }[]>([]);
+  const jetPosRef = useRef<{ x: number; y: number; angle: number }>({ x: 0, y: 0, angle: 0 });
 
-  // Draw curve on canvas
   useEffect(() => {
     const canvas = canvasRef.current;
     if (!canvas) return;
@@ -50,12 +49,12 @@ const MultiplierDisplay = ({ gameState, multiplier, crashPoint }: MultiplierDisp
     }
 
     if (gameState === "waiting") {
-      pointsRef.current = [];
+      jetPosRef.current = { x: 0, y: 0, angle: 0 };
       return;
     }
 
     // Calculate curve points
-    const progress = Math.min((multiplier - 1) / 9, 1); // normalize 1x-10x
+    const progress = Math.min((multiplier - 1) / 9, 1);
     const numPoints = Math.max(2, Math.floor(progress * 100));
     const points: { x: number; y: number }[] = [];
 
@@ -67,23 +66,12 @@ const MultiplierDisplay = ({ gameState, multiplier, crashPoint }: MultiplierDisp
       points.push({ x, y });
     }
 
-    pointsRef.current = points;
-
-    // Draw glow
+    // Draw curve
     if (points.length > 1) {
       ctx.beginPath();
       ctx.moveTo(points[0].x, points[0].y);
       for (let i = 1; i < points.length; i++) {
         ctx.lineTo(points[i].x, points[i].y);
-      }
-
-      const gradient = ctx.createLinearGradient(0, h, w, 0);
-      if (gameState === "crashed") {
-        gradient.addColorStop(0, "hsl(0, 75%, 55%)");
-        gradient.addColorStop(1, "hsl(0, 75%, 65%)");
-      } else {
-        gradient.addColorStop(0, "hsl(25, 95%, 55%)");
-        gradient.addColorStop(1, "hsl(42, 90%, 55%)");
       }
 
       ctx.strokeStyle = gameState === "crashed" ? "hsl(0, 75%, 55%)" : "hsl(25, 95%, 55%)";
@@ -108,24 +96,81 @@ const MultiplierDisplay = ({ gameState, multiplier, crashPoint }: MultiplierDisp
       }
       ctx.fillStyle = fillGrad;
       ctx.fill();
+
+      // Draw jet at the end of the curve
+      const lastPt = points[points.length - 1];
+      const prevPt = points[Math.max(0, points.length - 2)];
+      const angle = Math.atan2(prevPt.y - lastPt.y, lastPt.x - prevPt.x);
+
+      jetPosRef.current = { x: lastPt.x, y: lastPt.y, angle };
+
+      // Draw jet icon
+      ctx.save();
+      ctx.translate(lastPt.x, lastPt.y);
+      ctx.rotate(-angle);
+
+      // Jet trail/exhaust
+      if (gameState === "running") {
+        const trailGrad = ctx.createLinearGradient(-30, 0, 0, 0);
+        trailGrad.addColorStop(0, "hsla(25, 95%, 55%, 0)");
+        trailGrad.addColorStop(1, "hsla(25, 95%, 55%, 0.6)");
+        ctx.strokeStyle = trailGrad;
+        ctx.lineWidth = 4;
+        ctx.beginPath();
+        ctx.moveTo(-30, 0);
+        ctx.lineTo(-5, 0);
+        ctx.stroke();
+      }
+
+      // Jet body
+      const jetColor = gameState === "crashed" ? "hsl(0, 75%, 55%)" : "hsl(25, 95%, 55%)";
+      ctx.fillStyle = jetColor;
+      ctx.shadowColor = jetColor;
+      ctx.shadowBlur = 12;
+
+      // Simple jet shape
+      ctx.beginPath();
+      ctx.moveTo(12, 0);        // nose
+      ctx.lineTo(-6, -7);       // top wing
+      ctx.lineTo(-3, 0);        // body indent
+      ctx.lineTo(-6, 7);        // bottom wing
+      ctx.closePath();
+      ctx.fill();
+
+      // Tail
+      ctx.beginPath();
+      ctx.moveTo(-3, 0);
+      ctx.lineTo(-10, -5);
+      ctx.lineTo(-8, 0);
+      ctx.lineTo(-10, 5);
+      ctx.closePath();
+      ctx.fill();
+
+      ctx.shadowBlur = 0;
+
+      // Glow dot at nose
+      ctx.beginPath();
+      ctx.arc(12, 0, 3, 0, Math.PI * 2);
+      ctx.fillStyle = gameState === "crashed" ? "hsl(0, 85%, 70%)" : "hsl(42, 90%, 65%)";
+      ctx.fill();
+
+      ctx.restore();
     }
   }, [gameState, multiplier]);
 
   return (
     <div className="relative flex-1 flex flex-col items-center justify-center rounded-xl bg-card border border-border overflow-hidden gradient-game">
-      {/* Canvas for curve */}
       <canvas
         ref={canvasRef}
         className="absolute inset-0 w-full h-full"
         style={{ width: "100%", height: "100%" }}
       />
 
-      {/* Central multiplier */}
       <div className="relative z-10 flex flex-col items-center gap-2">
         {gameState === "waiting" && (
           <div className="flex flex-col items-center gap-3">
-            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center animate-pulse-glow">
-              <Rocket className="w-8 h-8 text-primary" />
+            <div className="w-14 h-14 rounded-full bg-secondary flex items-center justify-center animate-pulse-glow">
+              <Rocket className="w-7 h-7 text-primary" />
             </div>
             <p className="text-muted-foreground text-sm font-medium tracking-wide uppercase">
               Waiting for next round…
@@ -144,11 +189,10 @@ const MultiplierDisplay = ({ gameState, multiplier, crashPoint }: MultiplierDisp
 
         {gameState === "running" && (
           <div className="flex flex-col items-center gap-1">
-            <Rocket className="w-10 h-10 text-primary animate-rocket mb-2" />
-            <span className="font-mono text-6xl md:text-7xl font-black text-primary animate-count tracking-tight">
+            <span className="font-mono text-5xl md:text-6xl font-black text-primary animate-count tracking-tight">
               {multiplier.toFixed(2)}x
             </span>
-            <span className="text-xs text-muted-foreground uppercase tracking-widest mt-1">
+            <span className="text-[10px] text-muted-foreground uppercase tracking-widest mt-1">
               Current Multiplier
             </span>
           </div>
@@ -156,20 +200,19 @@ const MultiplierDisplay = ({ gameState, multiplier, crashPoint }: MultiplierDisp
 
         {gameState === "crashed" && (
           <div className="flex flex-col items-center gap-1">
-            <span className="font-mono text-6xl md:text-7xl font-black text-gaming-red animate-count tracking-tight">
+            <span className="font-mono text-5xl md:text-6xl font-black text-gaming-red animate-count tracking-tight">
               {crashPoint.toFixed(2)}x
             </span>
-            <span className="text-sm text-gaming-red font-semibold uppercase tracking-widest mt-1">
+            <span className="text-xs text-gaming-red font-semibold uppercase tracking-widest mt-1">
               Crashed!
             </span>
           </div>
         )}
       </div>
 
-      {/* SHA-256 badge */}
-      <div className="absolute bottom-3 right-3 z-10 flex items-center gap-1.5 px-2.5 py-1 rounded-md bg-secondary/80 backdrop-blur-sm border border-border">
+      <div className="absolute bottom-2 right-2 z-10 flex items-center gap-1.5 px-2 py-0.5 rounded-md bg-secondary/80 backdrop-blur-sm border border-border">
         <div className="w-1.5 h-1.5 rounded-full bg-gaming-green" />
-        <span className="text-[10px] text-muted-foreground font-mono">SHA-256 Verified</span>
+        <span className="text-[9px] text-muted-foreground font-mono">SHA-256</span>
       </div>
     </div>
   );
