@@ -2,7 +2,7 @@ import { useEffect, useState, useCallback } from "react";
 import { useAuth } from "@/contexts/AuthContext";
 import { supabase } from "@/integrations/supabase/client";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Shield, Eye, TrendingUp, Users, AlertTriangle } from "lucide-react";
+import { ArrowLeft, Shield, Eye, TrendingUp, Users, AlertTriangle, UserPlus, DollarSign } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "sonner";
 
@@ -15,34 +15,42 @@ const Admin = () => {
   const [upcomingPredictions, setUpcomingPredictions] = useState<number[]>([]);
   const [recentBets, setRecentBets] = useState<{ bet_amount: number; cashout_multiplier: number | null; crashed: boolean; profit: number; created_at: string }[]>([]);
   const [stats, setStats] = useState({ totalBets: 0, totalWagered: 0, totalProfit: 0, activeUsers: 0 });
+  const [allUsers, setAllUsers] = useState<{ user_id: string; username: string; amount: number }[]>([]);
+  const [creditUserId, setCreditUserId] = useState("");
+  const [creditAmount, setCreditAmount] = useState("");
 
-  // Check admin role via user_roles table
   useEffect(() => {
     if (!user) {
       setCheckingRole(false);
       return;
     }
     const checkAdmin = async () => {
-      const { data, error } = await (supabase as any)
-        .from("user_roles")
-        .select("role")
-        .eq("user_id", user.id)
-        .eq("role", "admin")
-        .single();
-      setIsAdmin(!!data && !error);
+      try {
+        const { data, error } = await (supabase as any)
+          .from("user_roles")
+          .select("role")
+          .eq("user_id", user.id)
+          .eq("role", "admin")
+          .single();
+        setIsAdmin(!!data && !error);
+        if (!data || error) {
+          toast.error("Access denied. Admin role required.");
+        }
+      } catch {
+        setIsAdmin(false);
+        toast.error("Could not verify admin role.");
+      }
       setCheckingRole(false);
-      if (!data || error) toast.error("Access denied. Admin role required.");
     };
     checkAdmin();
   }, [user]);
 
   useEffect(() => {
     if (!loading && !checkingRole && (!user || !isAdmin)) {
-      navigate("/");
+      if (!checkingRole) navigate("/");
     }
   }, [loading, checkingRole, user, isAdmin, navigate]);
 
-  // Generate predictions (client-side crash point algorithm)
   const generatePredictions = useCallback(() => {
     const predictions: number[] = [];
     for (let i = 0; i < 10; i++) {
@@ -53,7 +61,6 @@ const Admin = () => {
     setUpcomingPredictions(predictions);
   }, []);
 
-  // Listen for crash point updates via custom event
   useEffect(() => {
     const handler = (e: Event) => {
       setCurrentCrashPoint((e as CustomEvent).detail);
@@ -62,11 +69,9 @@ const Admin = () => {
     return () => window.removeEventListener("admin-crash-point", handler);
   }, []);
 
-  // Fetch data
   useEffect(() => {
     if (!isAdmin) return;
     const fetchData = async () => {
-      // Fetch recent bets from all users (admin RLS policy allows this)
       const { data: bets } = await supabase
         .from("bet_history")
         .select("bet_amount, cashout_multiplier, crashed, profit, created_at")
@@ -74,7 +79,6 @@ const Admin = () => {
         .limit(50);
       if (bets) setRecentBets(bets);
 
-      // Stats
       const { count: betCount } = await supabase
         .from("bet_history")
         .select("*", { count: "exact", head: true });
@@ -89,6 +93,23 @@ const Admin = () => {
         .from("profiles")
         .select("*", { count: "exact", head: true });
       setStats(prev => ({ ...prev, activeUsers: userCount || 0 }));
+
+      // Fetch all users with balances
+      const { data: profiles } = await supabase
+        .from("profiles")
+        .select("user_id, username");
+      const { data: balances } = await supabase
+        .from("balances")
+        .select("user_id, amount");
+
+      if (profiles) {
+        const balanceMap = new Map((balances || []).map(b => [b.user_id, Number(b.amount)]));
+        setAllUsers(profiles.map(p => ({
+          user_id: p.user_id,
+          username: p.username || "Unknown",
+          amount: balanceMap.get(p.user_id) || 0,
+        })));
+      }
     };
     fetchData();
     generatePredictions();
@@ -98,6 +119,39 @@ const Admin = () => {
     }, 10000);
     return () => clearInterval(interval);
   }, [isAdmin, generatePredictions]);
+
+  const handleCreditUser = async () => {
+    if (!creditUserId || !creditAmount) {
+      toast.error("Enter user ID and amount");
+      return;
+    }
+    const amount = Number(creditAmount);
+    if (isNaN(amount) || amount <= 0) {
+      toast.error("Invalid amount");
+      return;
+    }
+
+    const { data: existing } = await supabase
+      .from("balances")
+      .select("amount")
+      .eq("user_id", creditUserId)
+      .single();
+
+    if (existing) {
+      await supabase
+        .from("balances")
+        .update({ amount: Number(existing.amount) + amount })
+        .eq("user_id", creditUserId);
+    } else {
+      await supabase
+        .from("balances")
+        .insert({ user_id: creditUserId, amount });
+    }
+
+    toast.success(`Credited KES ${amount} to user`);
+    setCreditUserId("");
+    setCreditAmount("");
+  };
 
   if (loading || checkingRole || !isAdmin) return null;
 
@@ -123,7 +177,7 @@ const Admin = () => {
         <h1 className="text-sm font-bold text-foreground">Admin Panel</h1>
       </header>
 
-      <div className="max-w-4xl mx-auto p-4 space-y-4">
+      <div className="max-w-5xl mx-auto p-4 space-y-4">
         {/* Current Round */}
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center gap-2 mb-3">
@@ -139,6 +193,38 @@ const Admin = () => {
           )}
         </div>
 
+        {/* Credit User */}
+        <div className="bg-card border border-border rounded-xl p-5">
+          <div className="flex items-center gap-2 mb-3">
+            <DollarSign className="w-4 h-4 text-gaming-green" />
+            <h2 className="text-sm font-bold text-foreground uppercase tracking-wider">Credit User Balance</h2>
+          </div>
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <select
+              value={creditUserId}
+              onChange={(e) => setCreditUserId(e.target.value)}
+              className="bg-secondary border border-border rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            >
+              <option value="">Select user...</option>
+              {allUsers.map(u => (
+                <option key={u.user_id} value={u.user_id}>
+                  {u.username} (KES {u.amount.toLocaleString()})
+                </option>
+              ))}
+            </select>
+            <input
+              type="number"
+              placeholder="Amount (KES)"
+              value={creditAmount}
+              onChange={(e) => setCreditAmount(e.target.value)}
+              className="bg-secondary border border-border rounded-lg px-3 py-2 text-foreground text-sm focus:outline-none focus:ring-2 focus:ring-primary/50"
+            />
+            <Button onClick={handleCreditUser} className="font-semibold">
+              Credit Balance
+            </Button>
+          </div>
+        </div>
+
         {/* Upcoming Predictions */}
         <div className="bg-card border border-border rounded-xl p-5">
           <div className="flex items-center justify-between mb-3">
@@ -152,7 +238,7 @@ const Admin = () => {
           </div>
           <div className="flex items-center gap-1 mb-2">
             <AlertTriangle className="w-3 h-3 text-gaming-gold" />
-            <p className="text-[10px] text-muted-foreground">Predictions are probabilistic estimates based on the crash algorithm</p>
+            <p className="text-[10px] text-muted-foreground">Predictions are probabilistic estimates</p>
           </div>
           <div className="grid grid-cols-5 gap-2">
             {upcomingPredictions.map((val, i) => (
@@ -189,7 +275,29 @@ const Admin = () => {
           </div>
         </div>
 
-        {/* Recent Bets from All Users */}
+        {/* All Users */}
+        <div className="bg-card border border-border rounded-xl overflow-hidden">
+          <div className="px-4 py-3 border-b border-border flex items-center gap-2">
+            <UserPlus className="w-4 h-4 text-gaming-blue" />
+            <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">All Users</h3>
+          </div>
+          <div className="divide-y divide-border/30 max-h-[300px] overflow-y-auto">
+            {allUsers.map((u) => (
+              <div key={u.user_id} className="px-4 py-3 flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-foreground">{u.username}</p>
+                  <p className="text-[10px] text-muted-foreground font-mono">{u.user_id.slice(0, 8)}...</p>
+                </div>
+                <p className="font-mono text-sm font-bold text-foreground">KES {u.amount.toLocaleString()}</p>
+              </div>
+            ))}
+            {allUsers.length === 0 && (
+              <div className="p-8 text-center text-sm text-muted-foreground">No users yet</div>
+            )}
+          </div>
+        </div>
+
+        {/* Recent Bets */}
         <div className="bg-card border border-border rounded-xl overflow-hidden">
           <div className="px-4 py-3 border-b border-border">
             <h3 className="text-sm font-semibold text-foreground uppercase tracking-wider">Recent Bets (All Users)</h3>

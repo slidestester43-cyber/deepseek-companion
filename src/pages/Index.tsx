@@ -16,7 +16,6 @@ const Index = () => {
   const prevStateRef = useRef(gameState);
   const prevCashedOutRef = useRef(false);
 
-  // Sound effects on state transitions
   useEffect(() => {
     const prev = prevStateRef.current;
     if (prev !== gameState) {
@@ -26,7 +25,6 @@ const Index = () => {
     }
   }, [gameState, playRoundStart, playCrash]);
 
-  // Cashout sound
   useEffect(() => {
     const cashedOut = currentBet?.cashedOut ?? false;
     if (cashedOut && !prevCashedOutRef.current) {
@@ -36,19 +34,20 @@ const Index = () => {
   }, [currentBet?.cashedOut, playCashout]);
 
   return (
-    <div className="min-h-screen flex flex-col bg-background">
+    <div className="h-screen flex flex-col bg-background overflow-hidden">
       <GameHeader />
       <CrashHistory history={crashHistory} />
 
-      <div className="flex-1 p-3 md:p-4 grid grid-cols-1 lg:grid-cols-[280px_1fr_280px] xl:grid-cols-[320px_1fr_320px] gap-3 md:gap-4 max-w-[1600px] mx-auto w-full">
+      {/* Main game area - fills remaining height */}
+      <div className="flex-1 min-h-0 p-2 md:p-3 grid grid-cols-1 lg:grid-cols-[260px_1fr_280px] xl:grid-cols-[300px_1fr_300px] gap-2 md:gap-3 max-w-[1600px] mx-auto w-full">
         {/* Live bets + Leaderboard - LEFT side (hidden on mobile) */}
-        <div className="hidden lg:flex lg:flex-col gap-3 md:gap-4 overflow-hidden">
+        <div className="hidden lg:flex lg:flex-col gap-2 md:gap-3 overflow-hidden">
           <LiveBets roundKey={roundCount} />
           <Leaderboard />
         </div>
 
-        {/* Multiplier display - same height as live bets */}
-        <div className="flex flex-col min-h-[300px] sm:min-h-[350px] lg:min-h-0">
+        {/* Multiplier display - fills available height */}
+        <div className="flex flex-col min-h-0">
           <MultiplierDisplay
             gameState={gameState}
             multiplier={multiplier}
@@ -56,8 +55,8 @@ const Index = () => {
           />
         </div>
 
-        {/* Bet controls + Chat - RIGHT side */}
-        <div className="space-y-3 md:space-y-4">
+        {/* Bet controls - RIGHT side */}
+        <div className="flex flex-col gap-2 md:gap-3 min-h-0 overflow-y-auto">
           <BetControls
             gameState={gameState}
             onPlaceBet={placeBet}
@@ -65,43 +64,33 @@ const Index = () => {
             hasBet={!!currentBet && !currentBet.cashedOut}
           />
 
-          {/* Cashout notification */}
           {currentBet?.cashedOut && currentBet.cashoutMultiplier && (
-            <div className="bg-gaming-green/10 border border-gaming-green/30 rounded-xl p-4 text-center">
+            <div className="bg-gaming-green/10 border border-gaming-green/30 rounded-xl p-3 text-center">
               <p className="text-xs text-gaming-green uppercase tracking-wider mb-1">Cashed Out!</p>
-              <p className="font-mono text-2xl font-bold text-gaming-green">
+              <p className="font-mono text-xl font-bold text-gaming-green">
                 {currentBet.cashoutMultiplier.toFixed(2)}x
               </p>
-              <p className="text-xs text-muted-foreground mt-1">
+              <p className="text-[10px] text-muted-foreground mt-1">
                 Won KES {(currentBet.amount * currentBet.cashoutMultiplier).toFixed(0)}
               </p>
             </div>
           )}
-
-          
         </div>
 
         {/* Mobile: stacked bets below controls */}
-        <div className="lg:hidden space-y-3 col-span-1">
+        <div className="lg:hidden space-y-2 col-span-1">
           <LiveBets roundKey={roundCount} />
           <Leaderboard />
         </div>
       </div>
 
-      {/* Betting Rules */}
-      <div className="px-3 md:px-4 pb-3 md:pb-4 max-w-[1600px] mx-auto w-full">
-        <BettingRules />
-      </div>
-
-      {/* Footer */}
-      <footer className="border-t border-border px-4 py-3 flex flex-wrap items-center justify-center gap-4 text-[10px] text-muted-foreground">
+      {/* Footer - compact */}
+      <footer className="border-t border-border px-4 py-2 flex flex-wrap items-center justify-center gap-4 text-[10px] text-muted-foreground shrink-0">
         <span>18+ Only</span>
         <span>•</span>
         <span>Play Responsibly</span>
         <span>•</span>
         <span>Provably Fair Gaming</span>
-        <span>•</span>
-        <span>Licensed & Regulated</span>
       </footer>
     </div>
   );
