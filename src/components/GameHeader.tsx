@@ -110,6 +110,7 @@ const GameHeader = () => {
       </header>
 
       {user && <WalletModal open={walletOpen} onClose={() => setWalletOpen(false)} />}
+      <AuthSheet open={authOpen} onClose={() => setAuthOpen(false)} />
     </>
   );
 };
