@@ -4,6 +4,7 @@ import { useSound } from "@/contexts/SoundContext";
 import { useAuth } from "@/contexts/AuthContext";
 import { useNavigate } from "react-router-dom";
 import WalletModal from "@/components/WalletModal";
+import AuthSheet from "@/components/AuthSheet";
 import { supabase } from "@/integrations/supabase/client";
 
 const GameHeader = () => {
@@ -11,6 +12,7 @@ const GameHeader = () => {
   const { user, balance, signOut } = useAuth();
   const navigate = useNavigate();
   const [walletOpen, setWalletOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
@@ -97,7 +99,7 @@ const GameHeader = () => {
             </>
           ) : (
             <button
-              onClick={() => navigate("/auth")}
+              onClick={() => setAuthOpen(true)}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:brightness-110 transition-all"
             >
               <LogIn className="w-3.5 h-3.5" />
@@ -108,6 +110,7 @@ const GameHeader = () => {
       </header>
 
       {user && <WalletModal open={walletOpen} onClose={() => setWalletOpen(false)} />}
+      <AuthSheet open={authOpen} onClose={() => setAuthOpen(false)} />
     </>
   );
 };
