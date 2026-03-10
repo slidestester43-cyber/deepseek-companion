@@ -12,6 +12,7 @@ const GameHeader = () => {
   const { user, balance, signOut } = useAuth();
   const navigate = useNavigate();
   const [walletOpen, setWalletOpen] = useState(false);
+  const [authOpen, setAuthOpen] = useState(false);
   const [isAdminUser, setIsAdminUser] = useState(false);
 
   useEffect(() => {
